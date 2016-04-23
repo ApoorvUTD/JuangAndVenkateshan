@@ -67,7 +67,7 @@ public class ConfigReader {
 
 			for (int i=0;i<randomInt;i++){
 				Logger.log(Process.myHost,"Adding this mothafucka : " + Process.myHost.neighbor.get(Process.myHost.neighborList.get(i)));
-				subsetNeighbors.add(Process.myHost.neighbor.get(i));
+				subsetNeighbors.add(Process.myHost.neighbor.get(Process.myHost.neighborList.get(i)));
 			}
 		}
 		return subsetNeighbors;
