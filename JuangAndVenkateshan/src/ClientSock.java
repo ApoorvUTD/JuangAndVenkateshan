@@ -15,7 +15,9 @@ public class ClientSock implements Runnable {
 	public Socket socket;
 	public Node neighborMember=null;
 	
-	
+	public ClientSock(Node n){
+		  neighborMember = n;
+	}
 	// BufferedReader reader;
 		public static Host myHost;
 		public  boolean hostPing = false;
@@ -42,17 +44,28 @@ public class ClientSock implements Runnable {
 	@Override
 	public void run() {
 		// TODO Auto-generated method stub
-		
-		if (myHost.getMe().active){
+		hostPing = false;
+		while(!hostPing){
 			try {
 				socket = new Socket(neighborMember.getHostName()+ ".utdallas.edu",neighborMember.getPort());
+				PrintWriter writer = new PrintWriter(socket.getOutputStream());
+				Process.writersMap.put(neighborMember.getPID(), writer);
+				hostPing = true;
+				return;
+				
 			} catch (UnknownHostException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				
 			}
+			
+		}
+		
+		Logger.log(Process.myHost,"Established socker with " + neighborMember.getPID());
+		if (Process.myHost.getMe().active){
+			
 			try {
 				writerMap.put(neighborMember.getPID(),new PrintWriter(socket.getOutputStream()));
 			} catch (IOException e) {

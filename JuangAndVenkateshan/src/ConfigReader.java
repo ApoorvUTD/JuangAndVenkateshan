@@ -7,14 +7,15 @@ import java.util.Random;
 import java.util.Scanner;
 
 public class ConfigReader {
-	public static Host myHost;
+	public static Host myHost  = null;
 	private static int numberOfNodes;
 	private static int numberOfFailure;
 	private static int maxNumber;
 	private static int maxPerActive;
+	private static int minSendDelay;
 	private static int me;
-	public static ArrayList<Node> randomShandom = new ArrayList<Node>();
 
+	public static ArrayList<Node> subsetNeighbors = null;
 
 	public static void setMe(int pid){
 		me = pid;
@@ -28,7 +29,9 @@ public class ConfigReader {
 		ConfigReader.numberOfNodes = numberOfNodes;
 	}
 
-
+	public static int getMinSendDelay(){
+		return minSendDelay;
+	}
 
 	public static int getNumberOfFailure() {
 		return numberOfFailure;
@@ -53,14 +56,21 @@ public class ConfigReader {
 	public static void setMaxPerActive(int maxPerActive) {
 		ConfigReader.maxPerActive = maxPerActive;
 	}
-	
-	public static ArrayList randomNeighbor(){
-		Random randomGenerator = new Random();
-		int randomInt=randomGenerator.nextInt(myHost.neighborList.size());
-		for (int i=0;i<randomInt;i++){
-			randomShandom.add(myHost.neighbor.get(i));
+
+	public static ArrayList<Node> getSubsetNeighbors(){
+		if(subsetNeighbors == null ){
+			subsetNeighbors = new ArrayList<Node>();
+			Random randomGenerator = new Random();
+			//Logger.log(Process.myHost,"Value of the neighborList"+ Process.myHost.neighborList.size());
+			int randomInt=randomGenerator.nextInt(Process.myHost.neighborList.size());
+			Logger.log(Process.myHost,"neighbor size : " + Process.myHost.neighborList.size() + " Random Int : " + randomInt);
+
+			for (int i=0;i<randomInt;i++){
+				Logger.log(Process.myHost,"Adding this mothafucka : " + Process.myHost.neighbor.get(Process.myHost.neighborList.get(i)));
+				subsetNeighbors.add(Process.myHost.neighbor.get(i));
+			}
 		}
-		return randomShandom;
+		return subsetNeighbors;
 	}
 
 	//reading the configuration File
@@ -75,7 +85,7 @@ public class ConfigReader {
 		int neighbourCount = 0;
 		HashMap<Integer,Node> hosts = new HashMap<Integer,Node>();
 		HashMap<String,Integer> hostMap = new HashMap<String,Integer>();
-		while (line==file.readLine()){
+		while ((line=file.readLine()) != null){
 			if (line.trim().length()==0||(line.charAt(0)=='#')){
 				continue;
 			}
@@ -86,6 +96,7 @@ public class ConfigReader {
 				numberOfFailure=sc.nextInt();
 				maxNumber=sc.nextInt();
 				maxPerActive=sc.nextInt();
+				minSendDelay=sc.nextInt();
 				paramsParsed=true;
 				continue;
 			}
@@ -97,34 +108,36 @@ public class ConfigReader {
 				hostsCount++;
 				continue;
 			}
-			Host rhost = new Host(me,hosts.get(me));
-			rhost.hostMap=hostMap;
+			if(myHost == null){
+				myHost = new Host(me,hosts.get(me));
+				myHost.hostMap=hostMap;
+			}
 			if(hostsCount==numberOfNodes && currentHost<numberOfNodes){
 				if(currentHost==me){
 					while( sc.hasNext()){
 						int currentPID = sc.nextInt();
-						rhost.addNeighborMember(currentPID,hosts.get(currentPID));
+						myHost.addNeighborMember(currentPID,hosts.get(currentPID));
 
 					}
 
 
 
-
-					file.close();
-					return rhost;
 				}
 				currentHost++;
 			}
-			while(sc.hasNext()){
-				int failId = sc.nextInt();
-				int checkpoint = sc.nextInt();
-				rhost.nodeCheckpoint(failId, checkpoint);
+			else{
+				while(sc.hasNext()){
+					int failId = sc.nextInt();
+					int checkpoint = sc.nextInt();
+					myHost.nodeCheckpoint(failId, checkpoint);
+				}
 			}
 
 
 
 		}
-		return null;
+		file.close();
+		return myHost;
 	}
 }
 

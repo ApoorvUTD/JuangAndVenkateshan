@@ -36,6 +36,17 @@ public class Host {
     	return myNode;
     }
 
+	@Override
+	public String toString() {
+		return "Host [myname=" + myname + ", neighborList=" + neighborList + ", myNode=" + myNode
+				+ ", numberOfNeighborMemebr=" + numberOfNeighborMemebr + ", neighbor=" + neighbor + ", hostMap="
+				+ hostMap + ", checkPoint=" + checkPoint + ", nodeCheck=" + nodeCheck + ", whoami()=" + whoami()
+				+ ", getMe()=" + getMe() + ", getClass()=" + getClass() + ", hashCode()=" + hashCode() + ", toString()="
+				+ super.toString() + "]";
+	}
+    
+    
+
 }
 
 class Node{
