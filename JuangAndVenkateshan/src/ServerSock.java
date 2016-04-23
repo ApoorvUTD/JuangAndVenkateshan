@@ -53,16 +53,16 @@ public class ServerSock implements Runnable {
 
 	}
 
-	public static void sendREBMessage(Node node){
-		Logger.log(myHost,"Sending Message to "+ node.getPID());
-		if (myHost.getMe().active==true){
-			Clock.incrClock();
-			PrintWriter currentWriter = mapNodeWriter.get(node.getPID());
-			currentWriter.println("REB~" + myHost.getMe().getPID() + "~" + Clock.getValue());
-			currentWriter.flush();
-		}
-
-	}
+//	public static void sendREBMessage(Node node){
+//		Logger.log(myHost,"Sending Message to "+ node.getPID());
+//		if (myHost.getMe().active==true){
+//			Clock.incrClock();
+//			PrintWriter currentWriter = mapNodeWriter.get(node.getPID());
+//			currentWriter.println("REB~" + myHost.getMe().getPID() + "~" + Clock.getValue());
+//			currentWriter.flush();
+//		}
+//
+//	}
 
 
 	@Override
@@ -71,12 +71,14 @@ public class ServerSock implements Runnable {
 		if(role.equals("LISTENONPORT")){//some condition need to go here man
 			try {
 				
-				Logger.log(myHost, "Inside the If condition");
+				Logger.log(Process.myHost, "LISTENPORT-----> "+Process.myHost.getMe().getPID());
 				reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 				writer = new PrintWriter(socket.getOutputStream());
 				mapNodeWriter.put(incomingPID, writer);
 				while(true){
+					Logger.log(Process.myHost,"Waiting for a new message");
 					message = reader.readLine();
+					Logger.log(Process.myHost,"Got message from " + incomingPID);
 					String []tokens = message.split("[~]");
 					Clock.updateClock(Integer.parseInt(tokens[2]));
 					//Message-->clock,pid,type
@@ -90,38 +92,43 @@ public class ServerSock implements Runnable {
 
 			}
 			//send REB message
-			if(ConfigReader.getMaxPerActive()<ConfigReader.getSubsetNeighbors().size() && myHost.getMe().active){
-			for (int i=0;i<ConfigReader.getMaxPerActive();i++){
-				try {
-					Thread.sleep(ConfigReader.getMinSendDelay());
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					
-				}
-				sendREBMessage(ConfigReader.getSubsetNeighbors().get(i));//need to fix it
-			}
-			}if(ConfigReader.getMaxPerActive()>ConfigReader.getSubsetNeighbors().size() && myHost.getMe().active){
-				for (int i=0;i<ConfigReader.getMaxPerActive();i++){
-					try {
-						Thread.sleep(ConfigReader.getMinSendDelay());
-					} catch (InterruptedException e) {
-						// TODO Auto-generated catch block
-						
-					}
-					sendREBMessage(ConfigReader.getSubsetNeighbors().get(i));//need to fix it
-				}
-			}
+//			if(ConfigReader.getMaxPerActive()<ConfigReader.getSubsetNeighbors().size() && myHost.getMe().active){
+//			for (int i=0;i<ConfigReader.getMaxPerActive();i++){
+//				try {
+//					Thread.sleep(ConfigReader.getMinSendDelay());
+//				} catch (InterruptedException e) {
+//					// TODO Auto-generated catch block
+//					
+//				}
+//				sendREBMessage(ConfigReader.getSubsetNeighbors().get(i));//need to fix it
+//			}
+//			}if(ConfigReader.getMaxPerActive()>ConfigReader.getSubsetNeighbors().size() && myHost.getMe().active){
+//				for (int i=0;i<ConfigReader.getMaxPerActive();i++){
+//					try {
+//						Thread.sleep(ConfigReader.getMinSendDelay());
+//					} catch (InterruptedException e) {
+//						// TODO Auto-generated catch block
+//						
+//					}
+//					sendREBMessage(ConfigReader.getSubsetNeighbors().get(i));//need to fix it
+//				}
+//			}
 
-		}else while(role.equals("MESSAGEQUEUEWATCHER")){
+		}
+		else {
+			while(true){
 			Message currentMessage=null;
 			try {
 				currentMessage=messageQueue.take();
+				Logger.log(Process.myHost,"Received message from----> "+ currentMessage.getPID());
+				
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				
 			}if(myHost.getMe().active==false ){
 				
 			}  
+			}
 			
 
 		}

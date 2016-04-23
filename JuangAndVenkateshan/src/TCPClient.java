@@ -13,7 +13,7 @@ public class TCPClient implements Runnable{
 	
 	public static void sendREBMessage(Node node){
 		Logger.log(Process.myHost,"Sending Message to "+ node.getPID());
-		if (Process.myHost.getMe().active==true){
+		if (Process.myHost.getMe().active==true){	 	
 			Clock.incrClock();
 			PrintWriter currentWriter = Process.writersMap.get(node.getPID());
 			currentWriter.println("REB~" + Process.myHost.getMe().getPID() + "~" + Clock.getValue());
@@ -69,11 +69,30 @@ public class TCPClient implements Runnable{
 		if(i == Process.myHost.neighborList.size()){
 			Logger.log(Process.myHost,"MEALS READY");
 		}
+		//looping thru subset of neighbor
+		Logger.log(Process.myHost,"MaxPerActive : " + ConfigReader.getMaxPerActive() + ", My # of neighbors : " + ConfigReader.getSubsetNeighbors().size());
+		int maxPerActive = ConfigReader.getMaxPerActive();
+		int subsetCount = ConfigReader.getSubsetNeighbors().size();
+		int count =  (maxPerActive <= subsetCount) ? maxPerActive : subsetCount;
+		Logger.log(Process.myHost,"Count : " + count);
+			if(Process.myHost.getMe().active){
 		
-		
+				for (int k=0; k < count ;k++){
+				
+					sendREBMessage(ConfigReader.getSubsetNeighbors().get(k));//need to fix it
+					try {
+						Thread.sleep(ConfigReader.getMinSendDelay());
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						
+					}
+				}
+				}
+			
+		}
 
 		
 	}
 
-}
+
 
