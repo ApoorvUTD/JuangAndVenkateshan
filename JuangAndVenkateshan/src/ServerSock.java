@@ -80,7 +80,7 @@ public class ServerSock implements Runnable {
 					message = reader.readLine();
 					Logger.log(Process.myHost,"Got message from " + incomingPID);
 					String []tokens = message.split("[~]");
-					Clock.updateClock(Integer.parseInt(tokens[2]));
+					Clock.updateVectorClock(Clock.readVector(tokens));
 					//Message-->clock,pid,type
 					Message incomingMessage  = new Message(Integer.parseInt(tokens[2]),Integer.parseInt(tokens[1]),tokens[0]);
 					messageQueue.add(incomingMessage);
