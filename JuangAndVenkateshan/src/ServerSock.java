@@ -82,7 +82,7 @@ public class ServerSock implements Runnable {
 					String []tokens = message.split("[~]");
 					Clock.updateVectorClock(Clock.readVector(tokens));
 					//Message-->clock,pid,type
-					Message incomingMessage  = new Message(Integer.parseInt(tokens[2]),Integer.parseInt(tokens[1]),tokens[0]);
+					Message incomingMessage  = new Message(Clock.returnClockValue(tokens, Integer.parseInt(tokens[1])),Integer.parseInt(tokens[1]),tokens[0]);
 					messageQueue.add(incomingMessage);
 
 
