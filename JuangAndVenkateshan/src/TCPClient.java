@@ -16,7 +16,7 @@ public class TCPClient implements Runnable{
 		if (Process.myHost.getMe().active==true){	 	
 			Clock.incrClock();
 			PrintWriter currentWriter = Process.writersMap.get(node.getPID());
-			currentWriter.println("REB~" + Process.myHost.getMe().getPID() + "~" + Clock.getValue());
+			currentWriter.println("REB~" + Process.myHost.getMe().getPID() + "~" + Clock.getVectorClock());
 			currentWriter.flush();
 		}
 	}
