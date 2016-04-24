@@ -53,6 +53,9 @@ public class ConfigReader {
 		return maxPerActive;
 	}
 
+	public static int getMe(){
+		return me;
+	}
 	public static void setMaxPerActive(int maxPerActive) {
 		ConfigReader.maxPerActive = maxPerActive;
 	}
