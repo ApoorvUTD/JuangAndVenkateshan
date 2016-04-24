@@ -86,6 +86,7 @@ public class ConfigReader {
 		int hostsCount = 0;
 		int currentHost = 0;
 		int neighbourCount = 0;
+		int failEvents = 0;
 		HashMap<Integer,Node> hosts = new HashMap<Integer,Node>();
 		HashMap<String,Integer> hostMap = new HashMap<String,Integer>();
 		while ((line=file.readLine()) != null){
@@ -132,13 +133,21 @@ public class ConfigReader {
 				while(sc.hasNext()){
 					int failId = sc.nextInt();
 					int checkpoint = sc.nextInt();
+					FailureEvent f = new FailureEvent(failId,checkpoint,failEvents - 1);
+					if(failId == myHost.getMe().getPID()){
+						myHost.myFailEventList.add(f);
+					}
+					myHost.failureEvents.put(failEvents++, f);
 					myHost.nodeCheckpoint(failId, checkpoint);
+
 				}
 			}
 
 
 
 		}
+
+		myHost.numFailEvents = failEvents;
 		file.close();
 		return myHost;
 	}

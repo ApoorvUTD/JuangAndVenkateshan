@@ -7,6 +7,7 @@ public class TCPClient implements Runnable{
 	private int pid;
 	public TCPServer myServer;
 	public Host myHost;
+	public State currentState;
 	public ArrayList<HostPing> connections = new ArrayList<HostPing>();
 	public ArrayList<ClientSock> clientRequests = new ArrayList<ClientSock>();
 	
@@ -18,6 +19,9 @@ public class TCPClient implements Runnable{
 			PrintWriter currentWriter = Process.writersMap.get(node.getPID());
 			currentWriter.println("REB~" + Process.myHost.getMe().getPID() + "~" + Clock.getVectorClock());
 			currentWriter.flush();
+			Protocol.increment("SENT",node.getPID());
+			//Logger.log(Process.myHost,"Sending Message to "+ node.getPID());
+
 		}
 	}
 
@@ -80,6 +84,7 @@ public class TCPClient implements Runnable{
 				for (int k=0; k < count ;k++){
 				
 					sendREBMessage(ConfigReader.getSubsetNeighbors().get(k));//need to fix it
+				     Protocol.checkpoint(new State(Process.myHost.getMe().active,ConfigReader.getMaxNumber(),Clock.vectorClock,Protocol.received,Protocol.sent));
 					try {
 						Thread.sleep(ConfigReader.getMinSendDelay());
 					} catch (InterruptedException e) {

@@ -63,7 +63,7 @@ public class ClientSock implements Runnable {
 			
 		}
 		
-		Logger.log(Process.myHost,"Established socker with " + neighborMember.getPID());
+		Logger.log(Process.myHost,"Established socket with " + neighborMember.getPID());
 		if (Process.myHost.getMe().active){
 			
 			try {

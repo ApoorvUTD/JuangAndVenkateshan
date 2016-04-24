@@ -12,8 +12,13 @@ public class Host {
 	public HashMap<String,Integer> hostMap = new HashMap<String,Integer>();
 	//public void readFile(String filename) throws Exception{}
 	private int checkPoint;
-	private HashMap<Integer,Integer> nodeCheck = new HashMap<Integer,Integer>();
-	
+	public int numFailEvents;
+	public int eventID;
+	public  ArrayList<FailureEvent> myFailEventList = new ArrayList<FailureEvent>();
+	public static HashMap<Integer,FailureEvent> failureEvents = new HashMap<Integer,FailureEvent>();
+	public HashMap<Integer,Integer> nodeCheck = new HashMap<Integer,Integer>();
+	public HashMap<Integer,Boolean> hasHappened = new HashMap<Integer,Boolean>();
+
     public Host(int pid,Node node)throws Exception{
     	myname = InetAddress.getLocalHost().getHostName();	
     	myNode = node;
@@ -31,6 +36,8 @@ public class Host {
     public void nodeCheckpoint(int failId,int checkpoint){
     	nodeCheck.put(failId, checkpoint);
     }
+    
+   
     
     public Node getMe(){
     	return myNode;

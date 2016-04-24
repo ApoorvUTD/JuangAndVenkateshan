@@ -50,7 +50,6 @@ public class ServerSock implements Runnable {
 			myHost.getMe().active=true;
 		}
 		
-
 	}
 
 //	public static void sendREBMessage(Node node){
@@ -83,7 +82,10 @@ public class ServerSock implements Runnable {
 					Clock.updateVectorClock(Clock.readVector(tokens));
 					//Message-->clock,pid,type
 					Message incomingMessage  = new Message(Clock.returnClockValue(tokens, Integer.parseInt(tokens[1])),Integer.parseInt(tokens[1]),tokens[0]);
+					
 					messageQueue.add(incomingMessage);
+					Protocol.increment("RECIEVED",incomingMessage.getPID());
+					Protocol.checkpoint(new State(Process.myHost.getMe().active,ConfigReader.getMaxNumber(),Clock.vectorClock,Protocol.received,Protocol.sent));
 
 
 				}
@@ -120,6 +122,7 @@ public class ServerSock implements Runnable {
 			Message currentMessage=null;
 			try {
 				currentMessage=messageQueue.take();
+				onRecieveMessage(currentMessage);
 				Logger.log(Process.myHost,"Received message from----> "+ currentMessage.getPID());
 				
 			} catch (InterruptedException e) {
