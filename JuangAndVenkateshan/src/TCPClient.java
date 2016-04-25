@@ -35,26 +35,25 @@ public class TCPClient implements Runnable{
 		    int nMessages = 0;
 		    
 		    while(nMessages <= ConfigReader.getMaxNumber()){
-		    	 ArrayList<Node> subset = ConfigReader.getSubsetNeighbors();
-		    	 while(subset.size() == 0){
-		    		 subset = ConfigReader.getSubsetNeighbors();
-		    	 }
+		    	 HashSet<Node> subset = ConfigReader.getSubsetNeighbors();
 		    	 int maxActive = ConfigReader.getMaxPerActive();
 		    	 int subsetLength = subset.size();
 		    	 int length = (maxActive > subsetLength ) ? subsetLength : maxActive;
 		    	 
 		    	 nMessages += length;
+		    	 Iterator<Node> i = subset.iterator();
 		    	 passiveAt.put(nMessages, true );
-		    	 for(int i = 0; i < length; i++){
-		    	 schedule.add(Process.getPIDAtIndex(i));
+		    	 while(i.hasNext()){	 
+		    	 schedule.add(i.next().getPID());
 		    	 }
+		    	 
 		    }
 	 }
 	 
 	 public static void startREBProtocol(){
 		 int index = sentCount  + 1 ;
 		 while(passiveAt.get(index)  == null){
-			 sendREBMessage(ConfigReader.getSubsetNeighbors().get(index++));
+			 sendREBMessage(Process.getNodeAtIndex(schedule.get(index++)));
 			 Protocol.checkpoint(new State(Process.myHost.getMe().active,ConfigReader.getMaxNumber(),Clock.vectorClock,Protocol.received,Protocol.sent));
 				try {
 					Thread.sleep(ConfigReader.getMinSendDelay());
@@ -71,22 +70,7 @@ public class TCPClient implements Runnable{
 	public void run() {
 		// TODO Auto-generated method stub
 		
-		ArrayList<Node> mySubsetNeighbors = ConfigReader.getSubsetNeighbors();
-		
-		if(mySubsetNeighbors == null){
-			Logger.log(Process.myHost,"NULLLLLL");
-			return;
-		}
-		String line = "My neighbors are :- ";
-		for(int i = 0; i < Process.myHost.neighborList.size(); i++){
-			line += Process.myHost.neighborList.get(i) + " ";
-		}
-		Logger.log(Process.myHost,line);
-		line = "My subset neighbors are :- ";
-		for(int j = 0; j < mySubsetNeighbors.size(); j++){
-			line += mySubsetNeighbors.get(j).getPID() + " ";
-		}
-		Logger.log(Process.myHost, line);
+
 		for(int k = 0; k < Process.myHost.neighborList.size(); k++){
 			Node neighbor = Process.getNodeAtIndex(k);
 			ClientSock c = new ClientSock(neighbor);

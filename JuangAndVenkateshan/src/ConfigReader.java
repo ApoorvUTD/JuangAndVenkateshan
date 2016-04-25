@@ -3,6 +3,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Random;
 import java.util.Scanner;
 
@@ -60,19 +61,24 @@ public class ConfigReader {
 		ConfigReader.maxPerActive = maxPerActive;
 	}
 
-	public static ArrayList<Node> getSubsetNeighbors(){
+	public static HashSet<Node> getSubsetNeighbors(){
 	
-			subsetNeighbors = new ArrayList<Node>();
+			HashSet<Node> set = new HashSet<Node>();
+			
 			Random randomGenerator = new Random();
+			int randomInt = 0;
 			//Logger.log(Process.myHost,"Value of the neighborList"+ Process.myHost.neighborList.size());
-			int randomInt=randomGenerator.nextInt(Process.myHost.neighborList.size());
-			Logger.log(Process.myHost,"neighbor size : " + Process.myHost.neighborList.size() + " Random Int : " + randomInt);
-
-			for (int i=0;i<randomInt;i++){
-				Logger.log(Process.myHost,"Adding this mothafucka : " + Process.myHost.neighbor.get(Process.myHost.neighborList.get(i)));
-				subsetNeighbors.add(Process.myHost.neighbor.get(Process.myHost.neighborList.get(i)));
+			while(randomInt == 0){
+				randomInt = randomGenerator.nextInt(Process.myHost.neighborList.size());
+					
 			}
-		return subsetNeighbors;
+			Logger.log(Process.myHost,"neighbor size : " + Process.myHost.neighborList.size() + " Random Int : " + randomInt);
+	       
+			while(set.size() < randomInt){
+				int randomSelector = randomGenerator.nextInt(Process.myHost.neighborList.size()-1);
+				set.add(Process.myHost.neighbor.get(Process.myHost.neighborList.get(randomSelector)));
+			}
+		return set;
 	}
 
 	//reading the configuration File
