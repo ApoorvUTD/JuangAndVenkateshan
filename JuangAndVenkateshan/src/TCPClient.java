@@ -1,4 +1,3 @@
-import java.util.ArrayList;
 import java.io.PrintWriter;
 import java.util.*;
 
@@ -10,7 +9,9 @@ public class TCPClient implements Runnable{
 	public State currentState;
 	public ArrayList<HostPing> connections = new ArrayList<HostPing>();
 	public ArrayList<ClientSock> clientRequests = new ArrayList<ClientSock>();
-	
+	static int sentCount = 0;
+	public static ArrayList<Integer> schedule= new ArrayList<Integer>();//schedule to keep messages
+	 public static HashMap<Integer,Boolean> passiveAt = new HashMap<Integer,Boolean>();
 	
 	public static void sendREBMessage(Node node){
 		Logger.log(Process.myHost,"Sending Message to "+ node.getPID());
@@ -20,11 +21,50 @@ public class TCPClient implements Runnable{
 			currentWriter.println("REB~" + Process.myHost.getMe().getPID() + "~" + Clock.getVectorClock());
 			currentWriter.flush();
 			Protocol.increment("SENT",node.getPID());
+			sentCount++;
+			if(passiveAt.get(sentCount) != null){
+				Process.myHost.getMe().active = false;
+			}
+			//Protocol.isSent(node.getPID())
 			//Logger.log(Process.myHost,"Sending Message to "+ node.getPID());
 
 		}
 	}
 
+	 public static void buildSchedule(){
+		    int nMessages = 0;
+		    
+		    while(nMessages <= ConfigReader.getMaxNumber()){
+		    	 ArrayList<Node> subset = ConfigReader.getSubsetNeighbors();
+		    	 while(subset.size() == 0){
+		    		 subset = ConfigReader.getSubsetNeighbors();
+		    	 }
+		    	 int maxActive = ConfigReader.getMaxPerActive();
+		    	 int subsetLength = subset.size();
+		    	 int length = (maxActive > subsetLength ) ? subsetLength : maxActive;
+		    	 
+		    	 nMessages += length;
+		    	 passiveAt.put(nMessages, true );
+		    	 for(int i = 0; i < length; i++){
+		    	 schedule.add(Process.getPIDAtIndex(i));
+		    	 }
+		    }
+	 }
+	 
+	 public static void startREBProtocol(){
+		 int index = sentCount  + 1 ;
+		 while(passiveAt.get(index)  == null){
+			 sendREBMessage(ConfigReader.getSubsetNeighbors().get(index++));
+			 Protocol.checkpoint(new State(Process.myHost.getMe().active,ConfigReader.getMaxNumber(),Clock.vectorClock,Protocol.received,Protocol.sent));
+				try {
+					Thread.sleep(ConfigReader.getMinSendDelay());
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					
+				}
+			
+		 }
+	 }
 	
 	
 	@Override
@@ -81,17 +121,7 @@ public class TCPClient implements Runnable{
 		Logger.log(Process.myHost,"Count : " + count);
 			if(Process.myHost.getMe().active){
 		
-				for (int k=0; k < count ;k++){
-				
-					sendREBMessage(ConfigReader.getSubsetNeighbors().get(k));//need to fix it
-				     Protocol.checkpoint(new State(Process.myHost.getMe().active,ConfigReader.getMaxNumber(),Clock.vectorClock,Protocol.received,Protocol.sent));
-					try {
-						Thread.sleep(ConfigReader.getMinSendDelay());
-					} catch (InterruptedException e) {
-						// TODO Auto-generated catch block
-						
-					}
-				}
+				   startREBProtocol();
 				}
 			
 		}

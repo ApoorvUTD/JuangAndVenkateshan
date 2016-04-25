@@ -61,7 +61,7 @@ public class ConfigReader {
 	}
 
 	public static ArrayList<Node> getSubsetNeighbors(){
-		if(subsetNeighbors == null ){
+	
 			subsetNeighbors = new ArrayList<Node>();
 			Random randomGenerator = new Random();
 			//Logger.log(Process.myHost,"Value of the neighborList"+ Process.myHost.neighborList.size());
@@ -72,7 +72,6 @@ public class ConfigReader {
 				Logger.log(Process.myHost,"Adding this mothafucka : " + Process.myHost.neighbor.get(Process.myHost.neighborList.get(i)));
 				subsetNeighbors.add(Process.myHost.neighbor.get(Process.myHost.neighborList.get(i)));
 			}
-		}
 		return subsetNeighbors;
 	}
 

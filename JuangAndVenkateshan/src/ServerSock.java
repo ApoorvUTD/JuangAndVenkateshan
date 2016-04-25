@@ -123,6 +123,7 @@ public class ServerSock implements Runnable {
 			try {
 				currentMessage=messageQueue.take();
 				onRecieveMessage(currentMessage);
+				
 				Logger.log(Process.myHost,"Received message from----> "+ currentMessage.getPID());
 				
 			} catch (InterruptedException e) {
