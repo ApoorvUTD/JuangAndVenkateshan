@@ -13,8 +13,7 @@ public class TCPServer implements Runnable {
 		// TODO Auto-generated method stub
 		try {
 			//System.out.println(myHost.getMe().getPort());
-			@SuppressWarnings("resource")
-
+			Logger.log(Process.myHost, "SERVER STARTED");
 			ServerSocket serverSock = new ServerSocket(myHost.getMe().getPort());
 			ServerSock listenMessageQueue = new ServerSock(null,this,myHost);
 			listenMessageQueue.setRole("MESSAGEQUEUEWATCHER");
@@ -23,6 +22,7 @@ public class TCPServer implements Runnable {
 
 			while(true){
 				Socket sock = serverSock.accept();
+				Logger.log(Process.myHost,"ACCEPTED!");
 				ServerSock currentSock = new ServerSock(sock,this,myHost);
 				currentSock.setRole("LISTENONPORT");
 				Thread t=new Thread(currentSock);
@@ -31,6 +31,7 @@ public class TCPServer implements Runnable {
 			}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
+			e.printStackTrace();
 			
 		}
 

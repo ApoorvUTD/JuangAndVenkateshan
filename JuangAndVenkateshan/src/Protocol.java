@@ -50,7 +50,7 @@ public class Protocol {
 		Logger.log(Process.myHost, "Bitchpont," + s.toString() );
 		checkpoints.add(s);
 	}
-	public static synchronized void  increment(String type,int PID) {
+	public static synchronized void increment(String type,int PID) {
 		// TODO Auto-generated method stub
       if (type.equals("SENT")){
     	  sent[PID]++;

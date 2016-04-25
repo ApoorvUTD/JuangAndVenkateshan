@@ -14,8 +14,9 @@ public class TCPClient implements Runnable{
 	 public static HashMap<Integer,Boolean> passiveAt = new HashMap<Integer,Boolean>();
 	
 	public static void sendREBMessage(Node node){
-		Logger.log(Process.myHost,"Sending Message to "+ node.getPID());
+		
 		if (Process.myHost.getMe().active==true){	 	
+			Logger.log(Process.myHost,"Sending Message to "+ node.getPID());
 			Clock.incrClock();
 			PrintWriter currentWriter = Process.writersMap.get(node.getPID());
 			currentWriter.println("REB~" + Process.myHost.getMe().getPID() + "~" + Clock.getVectorClock());
@@ -30,6 +31,20 @@ public class TCPClient implements Runnable{
 
 		}
 	}
+	
+	public static void printSchedule(){
+		String line = "My Schedule once active :- ";
+		
+		for(int i = 0; i < schedule.size(); i++){
+			line += schedule.get(i) + " ";
+			if(passiveAt.get(i) != null){
+				line += "sleep" + " ";
+			}
+			
+		}
+		Logger.log(Process.myHost,line);
+		
+	}
 
 	 public static void buildSchedule(){
 		    int nMessages = 0;
@@ -41,18 +56,20 @@ public class TCPClient implements Runnable{
 		    	 int length = (maxActive > subsetLength ) ? subsetLength : maxActive;
 		    	 
 		    	 nMessages += length;
+		    	 int j = 0;
 		    	 Iterator<Node> i = subset.iterator();
 		    	 passiveAt.put(nMessages, true );
-		    	 while(i.hasNext()){	 
+		    	 while(i.hasNext() && j < length){	 
 		    	 schedule.add(i.next().getPID());
+		    	 j++;
 		    	 }
 		    	 
 		    }
 	 }
 	 
 	 public static void startREBProtocol(){
-		 int index = sentCount  + 1 ;
-		 while(passiveAt.get(index)  == null){
+		 int index = sentCount;
+		 while(passiveAt.get(sentCount)  == null){
 			 sendREBMessage(Process.getNodeAtIndex(schedule.get(index++)));
 			 Protocol.checkpoint(new State(Process.myHost.getMe().active,ConfigReader.getMaxNumber(),Clock.vectorClock,Protocol.received,Protocol.sent));
 				try {
@@ -85,26 +102,16 @@ public class TCPClient implements Runnable{
 			
 		  
 		}
-		int i;
-		for(i = 0; i < Process.myHost.neighborList.size(); i++){
-			if(Process.writersMap.get(Process.getPIDAtIndex(i)) == null){
-				Logger.log(Process.myHost, "NOT READY TO PARTICIPATE IN REB");
-				break;
-			}
-			
-		}
-		
-		if(i == Process.myHost.neighborList.size()){
-			Logger.log(Process.myHost,"MEALS READY");
-		}
+
 		//looping thru subset of neighbor
-		Logger.log(Process.myHost,"MaxPerActive : " + ConfigReader.getMaxPerActive() + ", My # of neighbors : " + ConfigReader.getSubsetNeighbors().size());
 		int maxPerActive = ConfigReader.getMaxPerActive();
 		int subsetCount = ConfigReader.getSubsetNeighbors().size();
 		int count =  (maxPerActive <= subsetCount) ? maxPerActive : subsetCount;
 		Logger.log(Process.myHost,"Count : " + count);
-			if(Process.myHost.getMe().active){
-		
+		buildSchedule();
+		printSchedule();
+		if(Process.myHost.getMe().active){
+					
 				   startREBProtocol();
 				}
 			

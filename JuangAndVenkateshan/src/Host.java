@@ -57,7 +57,7 @@ public class Host {
 }
 
 class Node{
-	boolean active =true; //marking all the Node as active initially
+	boolean active = true; //marking all the Node as active initially
 	private String hostname;
 	private int port;
 	private int pid;
@@ -74,6 +74,12 @@ class Node{
 		hostname = h;
 		port = p;
 		this.pid = pid;
+//        if(pid % 2 == 0){
+//        	active = true;
+//        }
+//        else{
+//        	active = false;
+//        }
 	}
 	
 }

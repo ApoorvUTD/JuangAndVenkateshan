@@ -25,7 +25,6 @@ public class ServerSock implements Runnable {
 	//public static PriorityQueue<Message> waitingQueue = new PriorityQueue<Message>(ConfigReader.getNumberOfNodes()*Config.getNumberOfRequests(), new MessageComparator());
 	public static Map<Integer, PrintWriter> mapNodeWriter = new HashMap<Integer,PrintWriter>();
 	public String role;
-	public static int numberOfMessagesSent;
 	public void setRole(String r){
 		role = r;
 
@@ -42,12 +41,21 @@ public class ServerSock implements Runnable {
 		}
 	}
 
-	public static void onRecieveMessage(Message incomingMessage){
-		if (!myHost.getMe().active && numberOfMessagesSent>=ConfigReader.getMaxNumber()){
+	public static void onReceiveMessage(Message incomingMessage){
+		 Logger.log(Process.myHost,"Receive message from " + incomingMessage.getPID());
+		if(incomingMessage.getMessageType().equals("REB")){
+			Protocol.increment("RECIEVED",incomingMessage.getPID());
+			Protocol.checkpoint(new State(Process.myHost.getMe().active,ConfigReader.getMaxNumber(),Clock.vectorClock,Protocol.received,Protocol.sent));
+		   
+		if (!myHost.getMe().active && TCPClient.sentCount >= ConfigReader.getMaxNumber()){
 			//do nothing
+			Logger.log(Process.myHost,"NOT GONNA TURN ACTIVE NO MODE!");
 		}
-		if (!myHost.getMe().active && numberOfMessagesSent<ConfigReader.getMaxNumber()){
-			myHost.getMe().active=true;
+		if (!myHost.getMe().active && TCPClient.sentCount < ConfigReader.getMaxNumber()){
+			myHost.getMe().active = true;
+			Logger.log(Process.myHost,"TURING ACTIVE!");
+			TCPClient.startREBProtocol();
+		}
 		}
 		
 	}
@@ -79,14 +87,13 @@ public class ServerSock implements Runnable {
 					message = reader.readLine();
 					Logger.log(Process.myHost,"Got message from " + incomingPID);
 					String []tokens = message.split("[~]");
+	
 					Clock.updateVectorClock(Clock.readVector(tokens));
 					//Message-->clock,pid,type
 					Message incomingMessage  = new Message(Clock.returnClockValue(tokens, Integer.parseInt(tokens[1])),Integer.parseInt(tokens[1]),tokens[0]);
 					
 					messageQueue.add(incomingMessage);
-					Protocol.increment("RECIEVED",incomingMessage.getPID());
-					Protocol.checkpoint(new State(Process.myHost.getMe().active,ConfigReader.getMaxNumber(),Clock.vectorClock,Protocol.received,Protocol.sent));
-
+				
 
 				}
 			}
@@ -119,12 +126,12 @@ public class ServerSock implements Runnable {
 		}
 		else {
 			while(true){
+			
 			Message currentMessage=null;
 			try {
 				currentMessage=messageQueue.take();
-				onRecieveMessage(currentMessage);
-				
-				Logger.log(Process.myHost,"Received message from----> "+ currentMessage.getPID());
+				onReceiveMessage(currentMessage);
+				Logger.log(Process.myHost,"Receive message from " + currentMessage.getPID());
 				
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
