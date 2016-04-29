@@ -12,14 +12,12 @@ public class Process {
 	public static int getPIDAtIndex(int index){
 		return Process.myHost.neighborList.get(index);
 	}
-	public static HashMap<Integer,Boolean> failureHasHappened = new HashMap<Integer,Boolean>();
+	public static Node getNodeByPID(int pid){
+		return Process.myHost.neighbor.get(pid);
+	}
 	public static HashMap<Integer,PrintWriter> writersMap = new HashMap<Integer,PrintWriter>();
 	
-	public static void initialize(int numFailEvents){
-		for(int i = 0; i < numFailEvents; i++){
-			 failureHasHappened.put(i, false);
-		}
-	}
+	
 	public static void main(String[] args) throws Exception {
 		// TODO Auto-generated method stub
 		 ConfigReader.setMe(Integer.parseInt(args[1]));
@@ -27,7 +25,7 @@ public class Process {
 		 
 		 Process.myHost = h;
 		 
-		 initialize(Process.myHost.numFailEvents);
+		 Protocol.initialize(Protocol.numFailEvents);
 		 TCPServer server = new TCPServer();
 		// server.myHost = h;
 //		 client.setData(server,h);

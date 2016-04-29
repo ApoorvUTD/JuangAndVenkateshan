@@ -45,7 +45,7 @@ public class ServerSock implements Runnable {
 		 Logger.log(Process.myHost,"Receive message from " + incomingMessage.getPID());
 		if(incomingMessage.getMessageType().equals("REB")){
 			Protocol.increment("RECIEVED",incomingMessage.getPID());
-			Protocol.checkpoint(new State(Process.myHost.getMe().active,ConfigReader.getMaxNumber(),Clock.vectorClock,Protocol.received,Protocol.sent));
+			Protocol.checkpoint();
 		   
 		if (!myHost.getMe().active && TCPClient.sentCount >= ConfigReader.getMaxNumber()){
 			//do nothing
@@ -88,9 +88,9 @@ public class ServerSock implements Runnable {
 					Logger.log(Process.myHost,"Got message from " + incomingPID);
 					String []tokens = message.split("[~]");
 	
-					Clock.updateVectorClock(Clock.readVector(tokens));
+					Protocol.updateVectorClock(Protocol.readVector(tokens));
 					//Message-->clock,pid,type
-					Message incomingMessage  = new Message(Clock.returnClockValue(tokens, Integer.parseInt(tokens[1])),Integer.parseInt(tokens[1]),tokens[0]);
+					Message incomingMessage  = new Message(Protocol.returnClockValue(tokens, Integer.parseInt(tokens[1])),Integer.parseInt(tokens[1]),tokens[0]);
 					
 					messageQueue.add(incomingMessage);
 				

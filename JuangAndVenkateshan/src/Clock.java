@@ -46,6 +46,11 @@ public class Clock {
     	  return vectorClockAppend;
     	  }
       }
+      public static int [] getClock(){
+    	  synchronized(vectorClock){
+    		  return vectorClock;
+    	  }
+      }
       public static  int maximum(int a, int b)
       {
     	  if(a<b)

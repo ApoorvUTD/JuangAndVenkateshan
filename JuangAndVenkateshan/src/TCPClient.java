@@ -17,9 +17,9 @@ public class TCPClient implements Runnable{
 		
 		if (Process.myHost.getMe().active==true){	 	
 			Logger.log(Process.myHost,"Sending Message to "+ node.getPID());
-			Clock.incrClock();
+			Protocol.incrClock();
 			PrintWriter currentWriter = Process.writersMap.get(node.getPID());
-			currentWriter.println("REB~" + Process.myHost.getMe().getPID() + "~" + Clock.getVectorClock());
+			currentWriter.println("REB~" + Process.myHost.getMe().getPID() + "~" + Protocol.getVectorClock());
 			currentWriter.flush();
 			Protocol.increment("SENT",node.getPID());
 			sentCount++;
@@ -70,9 +70,9 @@ public class TCPClient implements Runnable{
 	 public static void startREBProtocol(){
 		 int index = sentCount;
 		 while(passiveAt.get(sentCount)  == null){
-			 sendREBMessage(Process.getNodeAtIndex(schedule.get(index)));
+			 sendREBMessage(Process.getNodeByPID(schedule.get(index)));
 			 index++;
-			 Protocol.checkpoint(new State(Process.myHost.getMe().active,ConfigReader.getMaxNumber(),Clock.vectorClock,Protocol.received,Protocol.sent));
+			 Protocol.checkpoint();
 				try {
 					Thread.sleep(ConfigReader.getMinSendDelay());
 				} catch (InterruptedException e) {

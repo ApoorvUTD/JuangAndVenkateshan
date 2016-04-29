@@ -139,11 +139,13 @@ public class ConfigReader {
 					int failId = sc.nextInt();
 					int checkpoint = sc.nextInt();
 					FailureEvent f = new FailureEvent(failId,checkpoint,failEvents - 1);
+					
 					if(failId == myHost.getMe().getPID()){
-						myHost.myFailEventList.add(f);
+						Protocol.addToFailList(f);
+						
 					}
-					myHost.failureEvents.put(failEvents++, f);
-					myHost.nodeCheckpoint(failId, checkpoint);
+					Protocol.failureEvents.put(failEvents++, f);
+					Protocol.checkpointAt(failId, checkpoint);
 
 				}
 			}
@@ -152,7 +154,7 @@ public class ConfigReader {
 
 		}
 
-		myHost.numFailEvents = failEvents;
+		Protocol.numFailEvents = failEvents;
 		file.close();
 		return myHost;
 	}
