@@ -70,7 +70,8 @@ public class TCPClient implements Runnable{
 	 public static void startREBProtocol(){
 		 int index = sentCount;
 		 while(passiveAt.get(sentCount)  == null){
-			 sendREBMessage(Process.getNodeAtIndex(schedule.get(index++)));
+			 sendREBMessage(Process.getNodeAtIndex(schedule.get(index)));
+			 index++;
 			 Protocol.checkpoint(new State(Process.myHost.getMe().active,ConfigReader.getMaxNumber(),Clock.vectorClock,Protocol.received,Protocol.sent));
 				try {
 					Thread.sleep(ConfigReader.getMinSendDelay());
