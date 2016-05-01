@@ -1,4 +1,5 @@
 import java.io.PrintWriter;
+import java.util.PriorityQueue;
 import java.util.*;
 import java.util.concurrent.*;
 public class Protocol {
@@ -12,12 +13,13 @@ public class Protocol {
 	 public  static ArrayList<FailureEvent> myFailEventList = new ArrayList<FailureEvent>();
 	 public static HashMap<Integer,FailureEvent> failureEvents = new HashMap<Integer,FailureEvent>();
 	 public static String mode = "REB";
-	 public static Event previousEvent = null;
+	 public static Event previousEvent = null;	
 	 public static int sentCount = 0;
 	 public static HashMap<Integer,Boolean> passiveAt = new HashMap<Integer,Boolean>();
 	 public static ArrayList<Integer> schedule= new ArrayList<Integer>();//schedule to keep messages
 	 public static boolean active;
-		
+	 
+	 public static HashMap<Integer,PriorityQueue<BufferedState>> rebBufferedMessages = new HashMap<Integer,PriorityQueue<BufferedState>>();	
 	 public static void printSchedule(){
 			String line = "My Schedule once active :- ";
 			
@@ -34,7 +36,7 @@ public class Protocol {
 
 		 public static void buildSchedule(){
 			    int nMessages = 0;
-			    
+			
 			    while(nMessages <= ConfigReader.getMaxNumber()){
 			    	 HashSet<Node> subset = ConfigReader.getSubsetNeighbors();
 			    	 int maxActive = ConfigReader.getMaxPerActive();
@@ -142,8 +144,9 @@ public class Protocol {
     public synchronized static void incrClock(Node node){
   	 
   	    vectorClock[ConfigReader.getMe()]++;
+  	    int pid  = node.getPID();
   		PrintWriter currentWriter = Process.writersMap.get(node.getPID());
-		currentWriter.println("REB~" + Process.myHost.getMe().getPID() + "~" + Protocol.getVectorClock());
+  		currentWriter.println("REB|" + sent[pid] + "~" + Process.myHost.getMe().getPID() + "~" + Protocol.getVectorClock());
 		currentWriter.flush();
 		//Protocol.increment("SENT",node.getPID());
 		sent[node.getPID()]++;
@@ -188,8 +191,27 @@ public class Protocol {
   	   
 		  
     }
-	  public synchronized  static void updateVectorClock(String vectorClockReceived[],String [] tokens)
+	  
+	  public synchronized  static void updateVectorClock(String vectorClockReceived[],String [] tokens,int sequenceNumber)
 	    {
+			int pid = Integer.parseInt(tokens[1]);
+			Logger.log(Process.myHost,"PID is " + pid);
+			int [] vectorReceived = new int [ConfigReader.getNumberOfNodes()];
+			for(int i = 0; i < ConfigReader.getNumberOfNodes(); i++){
+				vectorReceived[i] = Integer.parseInt(vectorClockReceived[i]);
+			}
+			PriorityQueue<BufferedState> bufferedMessages = rebBufferedMessages.get(pid);
+			if( bufferedMessages == null){
+				bufferedMessages = new PriorityQueue<BufferedState>(1000,new BufferedStateComparator());
+				rebBufferedMessages.put(pid,bufferedMessages);
+			}
+		    
+		  	if(sequenceNumber > received[pid]){
+		  		bufferedMessages.add(new BufferedState(sequenceNumber, vectorReceived));
+		  		Logger.log(Process.myHost,"Received out of order message! Buffering!");
+		  		return;
+		  		
+		  	}
 		
 	  	  for(int i=0;i<ConfigReader.getNumberOfNodes();i++)
 	  	  {
@@ -198,7 +220,7 @@ public class Protocol {
 	  		  else
 	  		  vectorClock[i]=maximum(vectorClock[i], Integer.parseInt(vectorClockReceived[i]));
 	  	  }
-	  	  
+	  	
 	  	  Event currentEvent = new Event(vectorClock);
 	  	  
 	  	  if(previousEvent != null){
@@ -209,9 +231,31 @@ public class Protocol {
 	  	  }
 	  	  
 	  		  previousEvent = currentEvent;
+	  		
+	  	    	
+	  		received[pid]++;
+	  	    
+	  		
 	  	      checkpoint();
+	  	     
+	  	    	// Logger.log(Process.myHost,"CHECKING w.r.t + " + pid + ": " + received[pid] + " " + bufferedMessages.peek().sequenceNumber);
+		  	     
+	  	       if(!bufferedMessages.isEmpty() && received[pid] == bufferedMessages.peek().sequenceNumber){
+	  	    	 Logger.log(Process.myHost,"INGA IRUKEN!");
+	  	    	  while(!bufferedMessages.isEmpty() && received[pid] == bufferedMessages.peek().sequenceNumber){
+	  	    		 BufferedState currentState = bufferedMessages.peek();
+	  	    		 for(int j = 0; j < ConfigReader.getNumberOfNodes(); j++){
+	  	    			 vectorClock[j] = maximum(vectorClock[j],currentState.vectorClock[j]);
+	  	    		 }
+	  	    		 vectorClock[Process.myHost.getMe().getPID()]++;
+	  	    		 received[pid]++;
+	  	    		 checkpoint();
+	  	    		 bufferedMessages.remove();
+	  	    	  }
+	  	    	 Logger.log(Process.myHost,"Done checkpointing buffered messages uptill now w.r.t pid = " + pid );
+	  	      }
 	  	  
-	  	  int pid = Integer.parseInt(tokens[1]);
+	  	  
 	  	Logger.log(Process.myHost, "Received message from " + pid);
 	  	  
 	  	  Message incomingMessage = new Message(vectorClock[pid],pid,tokens[0]);

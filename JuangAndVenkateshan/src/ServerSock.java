@@ -103,8 +103,13 @@ public class ServerSock implements Runnable {
 					message = reader.readLine();
 					Logger.log(Process.myHost,"Got message from " + incomingPID);
 					String []tokens = message.split("[~]");
+					String []tok = tokens[0].split("[|]");
+					Logger.log(Process.myHost,incomingPID + "|" + tok[0] + "|"  + tok[1]);
+				    int sequenceNumber = Integer.parseInt(tok[1]);
+				    
                      if(Protocol.getMode().equals("RECOVERY")){
-                    	 switch(tokens[0]){
+                    	 
+                    	 switch(tok[0]){
                     	  
                     	 case "REB" : break; 
                     	 
@@ -118,20 +123,22 @@ public class ServerSock implements Runnable {
                     	 
                      }
                      else{
-                    	 
-                    	 switch(tokens[0]){
+                    	 Logger.log(Process.myHost,"I AM HERE!");
+                    	 switch(tok[0]){
                     	 case "REB" : 
                     		 		//receive event logged!
+                    		         Logger.log(Process.myHost,"HERE I AM");
                     		 		int sentCount = Protocol.getSentCount();
                     		 		int maxNum = ConfigReader.getMaxNumber();
                     		 		boolean active = Protocol.isActive();
+                    		 		Protocol.updateVectorClock(Protocol.readVector(tokens),tokens,sequenceNumber);	
                     		 		if(!active && sentCount >= maxNum){
                     		 			
                     		 		}
                     		        if(!active && sentCount < maxNum ){
                     		        	Protocol.setActive(true);
                     		        	Logger.log(Process.myHost,"TURING ACTIVE!");
-                    		        	Protocol.updateVectorClock(Protocol.readVector(tokens),tokens);
+                    		        	
                     		        	TCPClient.startREBProtocol();
                     		        }
                     		 		

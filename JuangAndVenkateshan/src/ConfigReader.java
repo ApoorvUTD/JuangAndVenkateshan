@@ -73,10 +73,11 @@ public class ConfigReader {
 					
 			}
 			//Logger.log(Process.myHost,"neighbor size : " + Process.myHost.neighborList.size() + " Random Int : " + randomInt);
-	       
+	        int i = 0;
 			while(set.size() < randomInt){	
 				int randomSelector = randomGenerator.nextInt(Process.myHost.neighborList.size()-1);
-				set.add(Process.myHost.neighbor.get(Process.myHost.neighborList.get(randomSelector)));
+				set.add(Process.myHost.neighbor.get(Process.myHost.neighborList.get(/*randomSelector*/i)));
+				i++;
 			}
 		return set;
 	}

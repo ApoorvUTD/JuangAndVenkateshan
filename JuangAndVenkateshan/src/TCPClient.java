@@ -65,6 +65,7 @@ public class TCPClient implements Runnable{
 		Protocol.printSchedule();
 		if(Protocol.isActive()){
 	 	   startREBProtocol();
+			   
 				}
 			
 		}
