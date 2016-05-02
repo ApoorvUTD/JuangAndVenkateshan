@@ -1,6 +1,16 @@
 import java.io.PrintWriter;
 import java.util.*;
 import java.util.concurrent.*;
+class RollbackMessage{
+	public int pid;
+	public int round;
+	public int incomingSentCount;
+	public RollbackMessage(int p, int r, int s){
+		pid = p;
+		round = r;
+		incomingSentCount = s;
+	}
+}
 public class Protocol {
 	 
 	 public static int sent[] = new int[ConfigReader.getNumberOfNodes()];
@@ -25,8 +35,8 @@ public class Protocol {
 	 public static int failsReceived = 0;
 	 public static int round = 0;
 	 public static boolean rollbackAware = false;
-	 
-	 
+	 public static int currentFailEvent = -1;
+	 public static HashMap<Integer,ArrayList<RollbackMessage>> jnvBufferedMessages = new HashMap<Integer,ArrayList<RollbackMessage>>();
 	 public static HashMap<Integer,PriorityQueue<BufferedState>> rebBufferedMessages = new HashMap<Integer,PriorityQueue<BufferedState>>();	
 	 public static void printSchedule(){
 			String line = "My Schedule once active :- ";
@@ -74,6 +84,34 @@ public class Protocol {
 	 public synchronized static boolean isRollbackAware(){
 		 return rollbackAware;
 	 }
+	 public synchronized static void sendRollbackMessages(){
+		 rollbackAware = true;
+		 ArrayList<Integer> neighbors = Process.myHost.neighborList;
+		 for(int i = 0; i < neighbors.size() ;i++){
+			 int pid = neighbors.get(i);
+			 PrintWriter writer = Process.writersMap.get(pid);
+			 writer.println("ROLLBACK~" + round + "~" + sent[pid]);
+			 writer.flush();
+			 rollbacksSent++;
+		 }
+		 
+//		 if(shouldFail()){
+//			 if(rollbacksProcessed()){
+//				 //start the next round
+//				 round();
+//			 }
+//			 
+//		 } 
+	 }
+	 public synchronized static void addRollbackMessage(RollbackMessage message){
+		 int incomingRound = message.round;
+		 ArrayList<RollbackMessage> bufferedMessages = jnvBufferedMessages.get(incominRound);
+		 if(bufferedMessages == null){
+			 bufferedMessages = new ArrayList<RollbackMessage>();	
+			
+		 }
+		 bufferedMessages.add(message);
+	 }
 	 public synchronized static String getMode(){
 		 return mode;
 	 }
@@ -97,11 +135,12 @@ public class Protocol {
 				 sent[i] = received[i] = 0;
 			 }
 			 failureHasHappened.put(-1, true);
+			 checkpoint();
 		}
 	 public static ArrayList<State> checkpoints = new ArrayList<State>();
 	public static void checkpoint(){
 		
-		State s = new State(active,ConfigReader.getMaxNumber(),vectorClock,Protocol.received,Protocol.sent);
+		State s = new State(active,vectorClock,Protocol.received,Protocol.sent,Protocol.sentCount);
 		Logger.log(Process.myHost, "Checkpoint," + s.toString() );
 		checkpoints.add(s);
 	}
@@ -137,9 +176,24 @@ public class Protocol {
 	
 	
 	public static void rollback(){
+		if(checkpoints.size() == 1){
+			return;
+		}
 		Random randomGenerator = new Random();
-		int randomInt = randomGenerator.nextInt(checkpoints.size()-1);
+		int randomInt = 0;
+		int size = checkpoints.size() - 1 ;
+	    while(!(randomInt > 0 && randomInt < size)){
+	    	//go at least one checkpoint behind!
+	    	randomInt = randomGenerator.nextInt(checkpoints.size()-1);
+	    }
 	    checkpoints = (ArrayList<State>)checkpoints.subList(0, randomInt);
+	    int last = checkpoints.size() -1;
+	    State currentState = checkpoints.get(last);
+	    sent = currentState.sentMsgs;
+	    received = currentState.recievedMsgs;
+	    vectorClock = currentState.clock;
+	    sentCount = currentState.sentCount;
+	    active = currentState.active;
 	}
 	public static void sendRollbacks(){
 		
@@ -177,13 +231,74 @@ public class Protocol {
     	      failsSent++;
     	}
     }
+    public synchronized static void setCurrentFailEvent(int eventId){
+    	 currentFailEvent = eventId;
+    }
     
     public synchronized static void incrFailsReceived(){
     	failsReceived++;
         
     }
+    
+    public synchronized static void incrRollbacksReceived(int incomingPID, int incomingSent){
+        int []tempReceived = new int[ConfigReader.getNumberOfNodes()];
+        int index = checkpoints.size() - 1;
+        for(int i = 0; i < ConfigReader.getNumberOfNodes(); i++){
+        	tempReceived[i] = received[i];
+        }
+    	while(tempReceived[incomingPID] <=  incomingSent && index > 0){
+    	      tempReceived = checkpoints.get(index).recievedMsgs;
+    	      index--;
+    	}
+    	if(index != checkpoints.size() -1 ){
+    	checkpoints = (ArrayList<State>)checkpoints.subList(0,index+1);
+    	}
+    	
+    	State currentState = checkpoints.get(checkpoints.size() -1);
+    	sent = currentState.sentMsgs;
+    	received = currentState.recievedMsgs;
+    	vectorClock = currentState.clock;
+    	sentCount = currentState.sentCount;
+    	active = currentState.active;
+    	rollbacksReceived++;
+    }
+    
+    public static void cleanup(){
+
+		//cleanup and startREB
+		round = 0;
+		for(int i = 0; i < ConfigReader.getNumberOfNodes(); i++){
+			 jnvBufferedMessages.put(0,null);
+		}
+		failureAware = false;
+	    rollbackAware = false;
+	    mode = "REB";
+	    failureHasHappened.put(currentFailEvent, true);
+	    if(shouldFail()){
+	         if(myFailEventList.size() > 0){
+	        	 myFailEventList.remove(0);
+	         }
+	    }
+	    
+	    TCPClient.startREBProtocol();
+	
+    }
+    public synchronized static void updateJNVBufferedMessages(int roundNum, ArrayList<RollbackMessage> list){
+    	  jnvBufferedMessages.put(roundNum, list);
+    }
     public synchronized static void round(){
-   
+    	
+    	if(round == ConfigReader.getNumberOfNodes()){
+    		//cleanup and startREB
+    		Protocol.cleanup();
+    	}
+    	else{
+    		if(shouldFail()){
+    			rollbackAware = true;
+    			sendRollbackMessages();
+    		}
+    	}
+    	round++;
     }
 
     public synchronized static boolean failsProcessed(){
@@ -196,10 +311,15 @@ public class Protocol {
     public synchronized static boolean rollbacksProcessed(){
     	int size = Process.myHost.neighborList.size();
     	if(rollbacksSent == size && rollbacksReceived == size){
+    		rollbackAware = false;
     		return true;
     	}
     	return false;
     	
+    }
+    
+    public synchronized static ArrayList<RollbackMessage> getJNVBufferedMessages(int roundNum){
+    	  return  jnvBufferedMessages.get(roundNum);
     }
     public synchronized static int getRound(){
     	return round;

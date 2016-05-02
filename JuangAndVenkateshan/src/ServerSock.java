@@ -110,6 +110,7 @@ public class ServerSock implements Runnable {
 					}
 					else if(tokens[0].startsWith("FAIL")){
 						tok = tokens;
+						Protocol.setCurrentFailEvent(Integer.parseInt(tok[1]));
 						Logger.log(Process.myHost,"Got fail message from " + incomingPID);
 						
 					}
@@ -145,7 +146,16 @@ public class ServerSock implements Runnable {
                     	         
                     	 case "ROLLBACK" : 
                     		                int round = Protocol.getRound();
-                    		                
+                    		                if(round != incomingRound){
+                    		                	Protocol.addRollbackMessage(new RollbackMessage(incomingPID,incomingRound,incomingSentCount));                    		                	
+                    		                }
+                    		                else{
+                    		                	
+                    		                	if(!Protocol.isRollbackAware() && !Protocol.shouldFail()){
+                    		                		Protocol.sendRollbackMessages();
+                    		                	}
+                    		                	Protocol.incrRollbacksReceived(incomingPID, incomingSentCount);
+                    		                }
                     		 	            if(Protocol.shouldFail()){
                     		 	            	 if(Protocol.rollbacksProcessed()){
                     		 	            		  Protocol.round();
@@ -153,7 +163,27 @@ public class ServerSock implements Runnable {
                     		 	            }
                     		 	            else{
                     		 	            	if(Protocol.rollbacksProcessed()){
-                    		 	            		//pretty much wait for the next rollback message!
+                    		 	            	     Protocol.incrRound();
+                    		 	            	     int roundNum = Protocol.getRound();
+                    		 	            	     
+                    		 	            	     if(roundNum == ConfigReader.getNumberOfNodes()){
+                    		 	            	    	  Protocol.cleanup();
+                    		 	            	    	  break;
+                    		 	            	     }
+                    		 	            		//pretty much wait for the next rollback message! 
+                    		 	            		//if there are any buffered round messages, please start sending those rollbackmessages 
+                    		 	            		//but only from the next round!
+                    		 	            		ArrayList<RollbackMessage> bufferedMessages = Protocol.getJNVBufferedMessages(roundNum);
+                    		 	            		Protocol.sendRollbackMessages();
+                    		 	            		if(bufferedMessages != null && bufferedMessages.size() != 0){
+                    		 	            			int size = bufferedMessages.size();
+                    		 	            			for(int i = 0; i < size ; i++){
+                    		 	            				RollbackMessage message = bufferedMessages.remove(0);
+                    		 	            			   	Protocol.incrRollbacksReceived(message.pid, message.incomingSentCount);
+                    		 	            			   	
+                    		 	            			}
+                    		 	            			Protocol.updateJNVBufferedMessages(roundNum,null);
+                    		 	            		}
                     		 	            	}
                     		 	            	else{
                     		 	            		//compare current messages with the roundnumber! if does not match, buffer the round message
@@ -195,6 +225,7 @@ public class ServerSock implements Runnable {
                     		 	           if( Protocol.failsProcessed()){
                     		 			   //start rounds!!
                     		 	        	   Protocol.round();
+                    		 	        	  
                     		 	           }
                     		 	           else{
                     		 	        	   //nothing :/

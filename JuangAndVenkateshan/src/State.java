@@ -2,18 +2,18 @@ import java.util.Arrays;
 
 public class State {
     boolean active;
-	int maxNumber;
 	int[] clock;
 	int[] recievedMsgs;
 	int[] sentMsgs;
+	int sentCount;
 	
-	public State(boolean active, int maxNumber, int[] clock, int[] recievedMsgs, int[] sentMsgs) {
+	public State(boolean active, int[] clock, int[] recievedMsgs, int[] sentMsgs,int count) {
 		super();
 		this.active = active;
-		this.maxNumber = maxNumber;
 		this.clock = clock;
 		this.recievedMsgs = recievedMsgs;
 		this.sentMsgs = sentMsgs;
+		this.sentCount = count;
 	}
 	
 
