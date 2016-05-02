@@ -116,6 +116,7 @@ public class ServerSock implements Runnable {
 					}
 					else{
 						//ROLLBACK MESSAGE; ROLLBACK~ROUND~SENTVALUE 
+						Logger.log(Process.myHost,"Got a rollback message from " + incomingPID);
 						incomingRound = Integer.parseInt(tokens[1]);
 						incomingSentCount = Integer.parseInt(tokens[2]);
 					}

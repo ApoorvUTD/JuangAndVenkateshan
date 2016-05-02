@@ -38,6 +38,7 @@ public class Protocol {
 	 public static int currentFailEvent = -1;
 	 public static HashMap<Integer,ArrayList<RollbackMessage>> jnvBufferedMessages = new HashMap<Integer,ArrayList<RollbackMessage>>();
 	 public static HashMap<Integer,PriorityQueue<BufferedState>> rebBufferedMessages = new HashMap<Integer,PriorityQueue<BufferedState>>();	
+	 public static int numCheckpoints = 0;
 	 public static void printSchedule(){
 			String line = "My Schedule once active :- ";
 			
@@ -105,7 +106,7 @@ public class Protocol {
 	 }
 	 public synchronized static void addRollbackMessage(RollbackMessage message){
 		 int incomingRound = message.round;
-		 ArrayList<RollbackMessage> bufferedMessages = jnvBufferedMessages.get(incominRound);
+		 ArrayList<RollbackMessage> bufferedMessages = jnvBufferedMessages.get(incomingRound);
 		 if(bufferedMessages == null){
 			 bufferedMessages = new ArrayList<RollbackMessage>();	
 			
@@ -143,6 +144,7 @@ public class Protocol {
 		State s = new State(active,vectorClock,Protocol.received,Protocol.sent,Protocol.sentCount);
 		Logger.log(Process.myHost, "Checkpoint," + s.toString() );
 		checkpoints.add(s);
+		numCheckpoints++;
 	}
 	public static synchronized void increment(String type,int PID) {
 		// TODO Auto-generated method stub
@@ -158,20 +160,17 @@ public class Protocol {
 	}
 	
     
-	public static  boolean shouldFail(){
+	public static boolean shouldFail(){
 		if(Protocol.myFailEventList.size() == 0){
 			return false;
 		}
 		
 		FailureEvent myNextFailEvent = Protocol.myFailEventList.get(0);
 		
-		return Protocol.failureHasHappened.get(myNextFailEvent.precedingEventId);
+		return Protocol.failureHasHappened.get(myNextFailEvent.precedingEventId) && (myNextFailEvent.failAfter == numCheckpoints);
 		
 	}
 	
-	public static synchronized void broadcastFailure(){
-		
-	}
 	
 	
 	
@@ -186,7 +185,8 @@ public class Protocol {
 	    	//go at least one checkpoint behind!
 	    	randomInt = randomGenerator.nextInt(checkpoints.size()-1);
 	    }
-	    checkpoints = (ArrayList<State>)checkpoints.subList(0, randomInt);
+	    
+	    checkpoints = new ArrayList<State>(checkpoints.subList(0, randomInt));
 	    int last = checkpoints.size() -1;
 	    State currentState = checkpoints.get(last);
 	    sent = currentState.sentMsgs;
@@ -194,14 +194,6 @@ public class Protocol {
 	    vectorClock = currentState.clock;
 	    sentCount = currentState.sentCount;
 	    active = currentState.active;
-	}
-	public static void sendRollbacks(){
-		
-		for(int i = 0; i < Process.myHost.neighborList.size(); i++){
-			
-			//send rollback message;
-			
-		}
 	}
 	
 	/************************Clock ************/
@@ -251,7 +243,7 @@ public class Protocol {
     	      index--;
     	}
     	if(index != checkpoints.size() -1 ){
-    	checkpoints = (ArrayList<State>)checkpoints.subList(0,index+1);
+    	checkpoints = new ArrayList<State>(checkpoints.subList(0,index+1));
     	}
     	
     	State currentState = checkpoints.get(checkpoints.size() -1);
@@ -273,13 +265,14 @@ public class Protocol {
 		failureAware = false;
 	    rollbackAware = false;
 	    mode = "REB";
+	    numCheckpoints = 0;
 	    failureHasHappened.put(currentFailEvent, true);
 	    if(shouldFail()){
 	         if(myFailEventList.size() > 0){
 	        	 myFailEventList.remove(0);
 	         }
 	    }
-	    
+	    Logger.log(Process.myHost,"COMPLETED N ROUNDS!!");
 	    TCPClient.startREBProtocol();
 	
     }
@@ -304,6 +297,8 @@ public class Protocol {
     public synchronized static boolean failsProcessed(){
     	int size = Process.myHost.neighborList.size();
     	if(failsSent == size && failsReceived == size){
+    		failsSent = 0;
+    		failsReceived = 0;
     		return true;
     	}
     	return false;
@@ -312,6 +307,8 @@ public class Protocol {
     	int size = Process.myHost.neighborList.size();
     	if(rollbacksSent == size && rollbacksReceived == size){
     		rollbackAware = false;
+    		rollbacksSent = 0;
+    		rollbacksReceived = 0;
     		return true;
     	}
     	return false;
@@ -339,7 +336,7 @@ public class Protocol {
 		currentWriter.flush();
 		//Protocol.increment("SENT",node.getPID());
 		sent[node.getPID()]++;
-		
+		sentCount++;		
 		Protocol.checkpoint();
 	  Event currentEvent = new Event(vectorClock);
 	  	  
@@ -351,12 +348,12 @@ public class Protocol {
 	  	  }
 		if(Protocol.shouldFail()){
 			 //START RECOVERY
+			Logger.log(Process.myHost,"GONNA FAIL!!!");;
 			rollback(); 
 			 Protocol.setMode("RECOVERY");
 			 return;
 		 }
 
-		sentCount++;
 		if(passiveAt.get(sentCount) != null){
 			Protocol.active = false;
 		}
@@ -434,6 +431,7 @@ public class Protocol {
 	  		
 	  	      checkpoint();
 	  	      if (shouldFail()){
+	  	    	Logger.log(Process.myHost,"GONNA FAIL!!!");;
 	  	    	  rollback();
 	  	    	  setMode("RECOVERY");
 	  	    	  Logger.log(Process.myHost,"DISCARDING BUFFERED MESSAGES!, TIME TO FAIL!");
@@ -456,6 +454,7 @@ public class Protocol {
 	  	    		 received[pid]++;
 	  	    		 checkpoint();
 	  	    		  if (shouldFail()){
+	  	    			Logger.log(Process.myHost,"GONNA FAIL!!!");;
 	  		  	    	  rollback();
 	  		  	    	  setMode("RECOVERY");
 	  		  	    	  Logger.log(Process.myHost,"DISCARDING BUFFERED MESSAGES!, TIME TO FAIL!");
