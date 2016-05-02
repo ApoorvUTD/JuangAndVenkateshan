@@ -1,5 +1,4 @@
 import java.io.PrintWriter;
-import java.util.PriorityQueue;
 import java.util.*;
 import java.util.concurrent.*;
 public class Protocol {
@@ -19,6 +18,14 @@ public class Protocol {
 	 public static ArrayList<Integer> schedule= new ArrayList<Integer>();//schedule to keep messages
 	 public static boolean active;
 	 public static boolean failureAware = false;
+	 public static int roundsCompleted = 0;
+	 public static int rollbacksSent = 0;
+	 public static int rollbacksReceived = 0;
+	 public static int failsSent = 0;
+	 public static int failsReceived = 0;
+	 public static int round = 0;
+	 public static boolean rollbackAware = false;
+	 
 	 
 	 public static HashMap<Integer,PriorityQueue<BufferedState>> rebBufferedMessages = new HashMap<Integer,PriorityQueue<BufferedState>>();	
 	 public static void printSchedule(){
@@ -63,6 +70,9 @@ public class Protocol {
 	 }
 	 public synchronized static boolean isFailureAware(){
 		 return failureAware;
+	 }
+	 public synchronized static boolean isRollbackAware(){
+		 return rollbackAware;
 	 }
 	 public synchronized static String getMode(){
 		 return mode;
@@ -127,7 +137,17 @@ public class Protocol {
 	
 	
 	public static void rollback(){
+		Random randomGenerator = new Random();
+		int randomInt = randomGenerator.nextInt(checkpoints.size()-1);
+	    checkpoints = (ArrayList<State>)checkpoints.subList(0, randomInt);
+	}
+	public static void sendRollbacks(){
 		
+		for(int i = 0; i < Process.myHost.neighborList.size(); i++){
+			
+			//send rollback message;
+			
+		}
 	}
 	
 	/************************Clock ************/
@@ -154,7 +174,38 @@ public class Protocol {
     	      PrintWriter writer = Process.writersMap.get(currentPID);
     	      writer.println("FAIL~" + (event.precedingEventId + 1));
     	      writer.flush();
+    	      failsSent++;
     	}
+    }
+    
+    public synchronized static void incrFailsReceived(){
+    	failsReceived++;
+        
+    }
+    public synchronized static void round(){
+   
+    }
+
+    public synchronized static boolean failsProcessed(){
+    	int size = Process.myHost.neighborList.size();
+    	if(failsSent == size && failsReceived == size){
+    		return true;
+    	}
+    	return false;
+    }
+    public synchronized static boolean rollbacksProcessed(){
+    	int size = Process.myHost.neighborList.size();
+    	if(rollbacksSent == size && rollbacksReceived == size){
+    		return true;
+    	}
+    	return false;
+    	
+    }
+    public synchronized static int getRound(){
+    	return round;
+    }
+    public synchronized static void incrRound(){
+    	round++;
     }
     public synchronized static void incrClock(Node node){
   	 
@@ -180,6 +231,7 @@ public class Protocol {
 	  	  }
 		if(Protocol.shouldFail()){
 			 //START RECOVERY
+			rollback(); 
 			 Protocol.setMode("RECOVERY");
 			 return;
 		 }
@@ -189,10 +241,7 @@ public class Protocol {
 			Protocol.active = false;
 		}
 		
-		if(shouldFail()){
-			setMode("RECOVERY");
-			
-		}
+		
     }
     
     
@@ -217,6 +266,10 @@ public class Protocol {
 	  
 	  public synchronized  static void updateVectorClock(String vectorClockReceived[],String [] tokens,int sequenceNumber)
 	    {
+		  
+		    if(mode.equals("RECOVERY")){
+		    	return;
+		    }
 			int pid = Integer.parseInt(tokens[1]);
 			Logger.log(Process.myHost,"PID is " + pid);
 			int [] vectorReceived = new int [ConfigReader.getNumberOfNodes()];
@@ -261,6 +314,7 @@ public class Protocol {
 	  		
 	  	      checkpoint();
 	  	      if (shouldFail()){
+	  	    	  rollback();
 	  	    	  setMode("RECOVERY");
 	  	    	  Logger.log(Process.myHost,"DISCARDING BUFFERED MESSAGES!, TIME TO FAIL!");
 	  	    	  for(int i = 0; i < ConfigReader.getNumberOfNodes(); i++){
@@ -281,22 +335,22 @@ public class Protocol {
 	  	    		 vectorClock[Process.myHost.getMe().getPID()]++;
 	  	    		 received[pid]++;
 	  	    		 checkpoint();
+	  	    		  if (shouldFail()){
+	  		  	    	  rollback();
+	  		  	    	  setMode("RECOVERY");
+	  		  	    	  Logger.log(Process.myHost,"DISCARDING BUFFERED MESSAGES!, TIME TO FAIL!");
+	  		  	    	  for(int i = 0; i < ConfigReader.getNumberOfNodes(); i++){
+	  		  	    		  rebBufferedMessages.put(i, null);
+	  		  	    	  }
+	  		  	    	  
+	  		  	    	  return;
+	  		  	      }
 	  	    		 
 	  	    		 bufferedMessages.remove();
 	  	    	  }
 	  	    	 Logger.log(Process.myHost,"Done checkpointing buffered messages uptill now w.r.t pid = " + pid );
 	  	      }
 	  	  
-	  	  
-	  	Logger.log(Process.myHost, "Received message from " + pid);
-	  	  
-	  	  Message incomingMessage = new Message(vectorClock[pid],pid,tokens[0]);
-	  	    
-	  //	Message incomingMessage  = new Message(Protocol.returnClockValue(tokens, Integer.parseInt(tokens[1])),Integer.parseInt(tokens[1]),tokens[0]);
- 	//	messageQueue.add(incomingMessage);
- 	
- 		//take a checkpoint here!
- 		
 			  
 	    } 
 	  

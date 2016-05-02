@@ -103,13 +103,20 @@ public class ServerSock implements Runnable {
 					message = reader.readLine();
 					String []tokens = message.split("[~]");
 					String []tok = {};
+					int incomingRound = -1;
+					int incomingSentCount = -1;
 					if(tokens[0].startsWith("REB")){
 						tok = tokens[0].split("[|]");
 					}
-					else{
+					else if(tokens[0].startsWith("FAIL")){
 						tok = tokens;
 						Logger.log(Process.myHost,"Got fail message from " + incomingPID);
 						
+					}
+					else{
+						//ROLLBACK MESSAGE; ROLLBACK~ROUND~SENTVALUE 
+						incomingRound = Integer.parseInt(tokens[1]);
+						incomingSentCount = Integer.parseInt(tokens[2]);
 					}
 					Logger.log(Process.myHost,incomingPID + "|" + tok[0] + "|"  + tok[1]);
 				    int sequenceNumber = Integer.parseInt(tok[1]);
@@ -120,10 +127,38 @@ public class ServerSock implements Runnable {
                     	  
                     	 case "REB" : break; 
                     	 
-                    	 case "FAIL" : break; //i know this already!
+                    	 case "FAIL" : 
+                    		 			 Protocol.incrFailsReceived();	
+                    		 			   if(Protocol.shouldFail()){
+                        		 	           if( Protocol.failsProcessed()){
+                        		 			   //start rounds!!
+                        		 	        	   Protocol.round();
+                        		 	           }
+                        		 	           else{
+                        		 	        	   //nothing :/
+                        		 	           }
+                        		 		   }
+                        		 		   else{
+                        		 			   //noting :/
+                        		 		   }
+                    		              break; //i know this already!
                     	         
                     	 case "ROLLBACK" : 
-                    		   
+                    		                int round = Protocol.getRound();
+                    		                
+                    		 	            if(Protocol.shouldFail()){
+                    		 	            	 if(Protocol.rollbacksProcessed()){
+                    		 	            		  Protocol.round();
+                    		 	            	 }
+                    		 	            }
+                    		 	            else{
+                    		 	            	if(Protocol.rollbacksProcessed()){
+                    		 	            		//pretty much wait for the next rollback message!
+                    		 	            	}
+                    		 	            	else{
+                    		 	            		//compare current messages with the roundnumber! if does not match, buffer the round message
+                    		 	            	}
+                    		 	            }
                     		    // i am going to do something about this
                     	 
                     	 }
@@ -152,8 +187,21 @@ public class ServerSock implements Runnable {
                     		 		
                     		 		break;
                     	 case "FAIL" : //abort participating in reb and flood to neighbors
+                    		 		   Protocol.incrFailsReceived();
                     		 		   if(!Protocol.isFailureAware()){
                     		 			Protocol.setMode("RECOVERY");
+                    		 		   }
+                    		 		   if(Protocol.shouldFail()){
+                    		 	           if( Protocol.failsProcessed()){
+                    		 			   //start rounds!!
+                    		 	        	   Protocol.round();
+                    		 	           }
+                    		 	           else{
+                    		 	        	   //nothing :/
+                    		 	           }
+                    		 		   }
+                    		 		   else{
+                    		 			   //noting :/
                     		 		   }
                     		            break;
                     		            
