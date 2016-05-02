@@ -39,6 +39,7 @@ public class Protocol {
 	 public static HashMap<Integer,ArrayList<RollbackMessage>> jnvBufferedMessages = new HashMap<Integer,ArrayList<RollbackMessage>>();
 	 public static HashMap<Integer,PriorityQueue<BufferedState>> rebBufferedMessages = new HashMap<Integer,PriorityQueue<BufferedState>>();	
 	 public static int numCheckpoints = 0;
+	 public static boolean bSend = false;
 	 public static void printSchedule(){
 			String line = "My Schedule once active :- ";
 			
@@ -52,7 +53,12 @@ public class Protocol {
 			Logger.log(Process.myHost,line);
 			
 		}
-
+	 	public  synchronized static void setCanSend(boolean b){
+	 		bSend = b;
+	 	}
+	 	public  synchronized static boolean canSend(){
+	 		return bSend;
+	 	}
 		 public static void buildSchedule(){
 			    int nMessages = 0;
 			
@@ -74,7 +80,7 @@ public class Protocol {
 			    }
 		 }
 
-	 public synchronized static void setMode(String s){
+	 public static void setMode(String s){
 		 mode = s;
 		 failureAware = true;
 		 announce();
@@ -212,14 +218,23 @@ public class Protocol {
     	active = b;
     }
     public static void announce(){
+    	Logger.log(Process.myHost,"Announcing!!");
+    	while(!canSend());
+    	Logger.log(Process.myHost,"Announed!~~~~~!!");
     	FailureEvent event = Protocol.myFailEventList.get(0);
-    	
+    	String line = "My neighbors are :- ";
+    	for(int i = 0; i < Process.myHost.neighborList.size();i++){
+    		line +=  Process.myHost.neighborList.get(i) + " "; 
+    	}
+    	Logger.log(Process.myHost,line);
     	for(int i = 0; i < Process.myHost.neighborList.size(); i++){
     		//send ANNOUNCE MESSAGE!
     		int currentPID = Process.myHost.neighborList.get(i);
+    		Logger.log(Process.myHost,"sending fail message to " + currentPID);
     	      PrintWriter writer = Process.writersMap.get(currentPID);
     	      writer.println("FAIL~" + (event.precedingEventId + 1));
     	      writer.flush();
+    	      
     	      failsSent++;
     	}
     }

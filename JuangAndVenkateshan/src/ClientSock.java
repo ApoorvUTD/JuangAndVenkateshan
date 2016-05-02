@@ -55,10 +55,10 @@ public class ClientSock implements Runnable {
 				
 			} catch (UnknownHostException e) {
 				// TODO Auto-generated catch block
-				
+				//Logger.log(Process.myHost,"UnknownHostException");
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
-				
+				//Logger.log(Process.myHost,"IOException");
 			}
 			
 		}

@@ -148,12 +148,15 @@ public class ServerSock implements Runnable {
                     	 case "ROLLBACK" : 
                     		                int round = Protocol.getRound();
                     		                if(round != incomingRound){
+                    		                	Logger.log(Process.myHost,"ROUND : " + round + " INCOMING ROUND: " + incomingRound);
                     		                	Protocol.addRollbackMessage(new RollbackMessage(incomingPID,incomingRound,incomingSentCount));                    		                	
                     		                }
                     		                else{
                     		                	
                     		                	if(!Protocol.isRollbackAware() && !Protocol.shouldFail()){
+                    		                		Logger.log(Process.myHost,"ABOUT TO SEND ROLLBACK MESSAGES");
                     		                		Protocol.sendRollbackMessages();
+                    		                		Logger.log(Process.myHost,"SENT ROLLBACK MESSAGES");
                     		                	}
                     		                	Protocol.incrRollbacksReceived(incomingPID, incomingSentCount);
                     		                }

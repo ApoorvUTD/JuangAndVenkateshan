@@ -50,12 +50,15 @@ public class TCPClient implements Runnable{
 			t.join();
 			}
 			catch(Exception e){
-				
+				Logger.log(Process.myHost,"THREADEXCEPTION");
 			}
 			
 		  
 		}
-
+		
+		
+		Logger.log(Process.myHost,"CLIENTREADY");
+         Protocol.setCanSend(true);
 		//looping thru subset of neighbor
 		int maxPerActive = ConfigReader.getMaxPerActive();
 		int subsetCount = ConfigReader.getSubsetNeighbors().size();
