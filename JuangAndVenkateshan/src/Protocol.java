@@ -18,6 +18,7 @@ public class Protocol {
 	 public static HashMap<Integer,Boolean> passiveAt = new HashMap<Integer,Boolean>();
 	 public static ArrayList<Integer> schedule= new ArrayList<Integer>();//schedule to keep messages
 	 public static boolean active;
+	 public static boolean failureAware = false;
 	 
 	 public static HashMap<Integer,PriorityQueue<BufferedState>> rebBufferedMessages = new HashMap<Integer,PriorityQueue<BufferedState>>();	
 	 public static void printSchedule(){
@@ -57,6 +58,11 @@ public class Protocol {
 
 	 public synchronized static void setMode(String s){
 		 mode = s;
+		 failureAware = true;
+		 announce();
+	 }
+	 public synchronized static boolean isFailureAware(){
+		 return failureAware;
 	 }
 	 public synchronized static String getMode(){
 		 return mode;
@@ -80,6 +86,7 @@ public class Protocol {
 			 for(int i = 0; i < ConfigReader.getNumberOfNodes(); i++){
 				 sent[i] = received[i] = 0;
 			 }
+			 failureHasHappened.put(-1, true);
 		}
 	 public static ArrayList<State> checkpoints = new ArrayList<State>();
 	public static void checkpoint(){
@@ -102,18 +109,15 @@ public class Protocol {
 	}
 	
     
-//	public static synchronized boolean shouldFail(){
-//		if(Protocol.myFailEventList.size() == 0){
-//			return false;
-//		}
-//		
-//		FailureEvent myNextFailEvent = Protocol.myFailEventList.get(0);
-//		
-//		return Protocol.failureHasHappened.get(myNextFailEvent.precedingEventId);
-//		
-//	}
-	public static boolean shouldFail(){
-		return false;
+	public static  boolean shouldFail(){
+		if(Protocol.myFailEventList.size() == 0){
+			return false;
+		}
+		
+		FailureEvent myNextFailEvent = Protocol.myFailEventList.get(0);
+		
+		return Protocol.failureHasHappened.get(myNextFailEvent.precedingEventId);
+		
 	}
 	
 	public static synchronized void broadcastFailure(){
@@ -141,8 +145,22 @@ public class Protocol {
     public synchronized static void setActive(boolean b){
     	active = b;
     }
+    public static void announce(){
+    	FailureEvent event = Protocol.myFailEventList.get(0);
+    	
+    	for(int i = 0; i < Process.myHost.neighborList.size(); i++){
+    		//send ANNOUNCE MESSAGE!
+    		int currentPID = Process.myHost.neighborList.get(i);
+    	      PrintWriter writer = Process.writersMap.get(currentPID);
+    	      writer.println("FAIL~" + (event.precedingEventId + 1));
+    	      writer.flush();
+    	}
+    }
     public synchronized static void incrClock(Node node){
   	 
+    	if(mode.equals("RECOVERY")){
+    		return;
+    	}
   	    vectorClock[ConfigReader.getMe()]++;
   	    int pid  = node.getPID();
   		PrintWriter currentWriter = Process.writersMap.get(node.getPID());
@@ -169,6 +187,11 @@ public class Protocol {
 		sentCount++;
 		if(passiveAt.get(sentCount) != null){
 			Protocol.active = false;
+		}
+		
+		if(shouldFail()){
+			setMode("RECOVERY");
+			
 		}
     }
     
@@ -237,7 +260,15 @@ public class Protocol {
 	  	    
 	  		
 	  	      checkpoint();
-	  	     
+	  	      if (shouldFail()){
+	  	    	  setMode("RECOVERY");
+	  	    	  Logger.log(Process.myHost,"DISCARDING BUFFERED MESSAGES!, TIME TO FAIL!");
+	  	    	  for(int i = 0; i < ConfigReader.getNumberOfNodes(); i++){
+	  	    		  rebBufferedMessages.put(i, null);
+	  	    	  }
+	  	    	  
+	  	    	  return;
+	  	      }
 	  	    	// Logger.log(Process.myHost,"CHECKING w.r.t + " + pid + ": " + received[pid] + " " + bufferedMessages.peek().sequenceNumber);
 		  	     
 	  	       if(!bufferedMessages.isEmpty() && received[pid] == bufferedMessages.peek().sequenceNumber){
@@ -250,6 +281,7 @@ public class Protocol {
 	  	    		 vectorClock[Process.myHost.getMe().getPID()]++;
 	  	    		 received[pid]++;
 	  	    		 checkpoint();
+	  	    		 
 	  	    		 bufferedMessages.remove();
 	  	    	  }
 	  	    	 Logger.log(Process.myHost,"Done checkpointing buffered messages uptill now w.r.t pid = " + pid );

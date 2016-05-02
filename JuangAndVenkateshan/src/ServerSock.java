@@ -101,9 +101,16 @@ public class ServerSock implements Runnable {
 					
 					Logger.log(Process.myHost,"Waiting for a new message");
 					message = reader.readLine();
-					Logger.log(Process.myHost,"Got message from " + incomingPID);
 					String []tokens = message.split("[~]");
-					String []tok = tokens[0].split("[|]");
+					String []tok = {};
+					if(tokens[0].startsWith("REB")){
+						tok = tokens[0].split("[|]");
+					}
+					else{
+						tok = tokens;
+						Logger.log(Process.myHost,"Got fail message from " + incomingPID);
+						
+					}
 					Logger.log(Process.myHost,incomingPID + "|" + tok[0] + "|"  + tok[1]);
 				    int sequenceNumber = Integer.parseInt(tok[1]);
 				    
@@ -127,6 +134,7 @@ public class ServerSock implements Runnable {
                     	 switch(tok[0]){
                     	 case "REB" : 
                     		 		//receive event logged!
+                    		       	
                     		         Logger.log(Process.myHost,"HERE I AM");
                     		 		int sentCount = Protocol.getSentCount();
                     		 		int maxNum = ConfigReader.getMaxNumber();
@@ -144,6 +152,9 @@ public class ServerSock implements Runnable {
                     		 		
                     		 		break;
                     	 case "FAIL" : //abort participating in reb and flood to neighbors
+                    		 		   if(!Protocol.isFailureAware()){
+                    		 			Protocol.setMode("RECOVERY");
+                    		 		   }
                     		            break;
                     		            
                     	 case "ROLLBACK" : //shouldn't come here! let's see about that
