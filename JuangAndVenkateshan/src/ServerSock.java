@@ -116,6 +116,7 @@ public class ServerSock implements Runnable {
 					}
 					else{
 						//ROLLBACK MESSAGE; ROLLBACK~ROUND~SENTVALUE 
+						tok = tokens;
 						Logger.log(Process.myHost,"Got a rollback message from " + incomingPID);
 						incomingRound = Integer.parseInt(tokens[1]);
 						incomingSentCount = Integer.parseInt(tokens[2]);
@@ -146,6 +147,7 @@ public class ServerSock implements Runnable {
                     		              break; //i know this already!
                     	         
                     	 case "ROLLBACK" : 
+                    		                 Logger.log(Process.myHost,"GONNA HANDLE ROLLBACK!!");
                     		                int round = Protocol.getRound();
                     		                if(round != incomingRound){
                     		                	Logger.log(Process.myHost,"ROUND : " + round + " INCOMING ROUND: " + incomingRound);
